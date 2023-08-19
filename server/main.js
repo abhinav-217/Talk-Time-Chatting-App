@@ -17,6 +17,9 @@ app.use(cors({
 app.get('/', (req, res) => {
     res.send('404 Error Printed By Me')
 })
+app.get('/testing', (req, res) => {
+    res.send("Have You checked")
+})
 app.use("/auth", require("./router/authrouter"));
 
 
