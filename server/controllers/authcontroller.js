@@ -1,8 +1,8 @@
 const User = require('../data/User');
 const jwt = require('jsonwebtoken')
-const createToken = (userId) => {
+const createToken = (userId,username,email,phone) => {
     const jwtSec = process.env.JWT_SECRETKEY;
-    const token = jwt.sign({ userId: userId }, jwtSec)
+    const token = jwt.sign({ userId,username,email,phone }, jwtSec)
     // console.log("The Token is: ", token)
     return token;
 }
@@ -12,23 +12,23 @@ const verifyToken = (token) => {
         if (token.length > 0) {
             const decode = jwt.verify(token, process.env.JWT_SECRETKEY);
             if (decode.userId.length > 0) {
-                return true;
+                return {status:true,username:decode.username,email:decode.email,id:decode.userId,phone:decode.phone};
             }
         }
     }
     else
-        return false;
+        return {status:false};
 }
 async function auth_register(req, res) {
     try {
-        let { username, password, email } = req.body;
+        let { username, password, email,phone } = req.body;
         const isPresentEmail = await User.find({ email });
-        const isPresentUsername = await User.find({ username });
+        const isPresentUserPhone = await User.find({ phone });
         if (isPresentEmail.length == 0) {
-            if (isPresentUsername.length == 0) {
-                const createdUser = await User.create({ username, email, password })
-                console.log(createdUser._id);
-                const token = createToken(createdUser._id);
+            if (isPresentUserPhone.length == 0) {
+                const createdUser = await User.create({ username, email, password,phone })
+                // console.log(createdUser._id);
+                const token = createToken(createdUser._id,username,email,phone);
                 res.cookie('token', token).status(200).json(JSON.stringify({
                     status: true,
                     message: "Account Created Succesfully"
@@ -37,7 +37,7 @@ async function auth_register(req, res) {
             else {
                 res.status(200).json(JSON.stringify({
                     status: false,
-                    message: "Username already exist"
+                    message: "Phone already exist"
                 }));
                 return;
             }
@@ -57,30 +57,47 @@ async function auth_register(req, res) {
 async function auth_login(req, res) {
     try {
         let { searchValue, password } = req.body;
-        console.log(searchValue, password);
-        const isPresentEmail = await User.find({email:searchValue})
-        const isPresentUsername = await User.find({username:searchValue})
-        if(isPresentEmail.length>0 || isPresentUsername.length>0)
+        const isPresentEmail = []; // For Future
+        // const isPresentEmail = await User.find({email:searchValue})
+        const isPresentUserPhone = await User.find({phone:searchValue})
+        if(isPresentEmail.length>0 || isPresentUserPhone.length>0)
         {
-            console.log("User Present");
+            // console.log("User Present");
             let user_credentials = [];
-            user_credentials = (isPresentEmail.length>0) ? isPresentEmail : isPresentUsername;
+            user_credentials = (isPresentEmail.length>0) ? isPresentEmail : isPresentUserPhone;
             // console.log(user_credentials)
             let userId = user_credentials[0]._id.toString();
             let userPassword = user_credentials[0].password;
-            // Not matching Password now add this
-            console.log(user_credentials[0]._id.toString());
-            let token = createToken(userId);
-            res.cookie('token',token).status(200).json(JSON.stringify({
-                status: true,
-                message: "Account Exists"
-            }));
+            let username = user_credentials[0].username;
+            let email = user_credentials[0].email;
+            let phone = user_credentials[0].phone;
+            // console.log(username)
+            // console.log(email)
+            // console.log(phone);
+            // console.log(userPassword)
+            // console.log(password)
+            if(userPassword !== undefined && password !== undefined && password == userPassword)
+            {
+                // console.log("Password Matched");
+                let token = createToken(userId,username,email,phone);
+                res.cookie('token',token).status(200).json(JSON.stringify({
+                    status: true,
+                    message: "Account Exists Credentials matched"
+                }));
+            }
+            else
+            {
+                res.status(200).json(JSON.stringify({
+                    status: false,
+                    message: "Password Is Incorrect"
+                })); 
+            }
         }
         else
         {
             res.status(200).json(JSON.stringify({
                 status: false,
-                message: "No Accounts exists for above credentials"
+                message: "No matching username or email"
             })); 
         }
     } catch (error) {
@@ -91,6 +108,7 @@ async function auth_login(req, res) {
 async function auth_checkAuth(req, res) {
     try {
         let token = req.cookies.token;
+        // console.log(token)
         if (token === undefined) {
             res.status(403).json(JSON.stringify({
                 status: false,
@@ -99,10 +117,16 @@ async function auth_checkAuth(req, res) {
             return;
         }
         let resp = verifyToken(token);
-        if (resp) {
+        // console.log(resp)
+        if (resp.status) {
+            // console.log("here")
             res.status(200).json(JSON.stringify({
                 status: true,
-                message: "User Verified"
+                message: "User Verified",
+                id:resp.id,
+                username:resp.username,
+                email:resp.email,
+                phone:resp.phone
             }));
         }
         else {
@@ -117,4 +141,4 @@ async function auth_checkAuth(req, res) {
     }
 }
 
-module.exports = { auth_register, auth_login, auth_checkAuth }
+module.exports = { auth_register, auth_login, auth_checkAuth, verifyToken }

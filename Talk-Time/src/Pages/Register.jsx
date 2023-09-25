@@ -13,31 +13,37 @@ const Register = () => {
   const [username, setusername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("")
   const [buttonText, setButtonText] = useState("Go on Register");
   const [authError, setError] = useState("")
   const [load, setLoad] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (username.trim().length > 0 && password.trim().length > 0) {
+    if (username.trim().length > 0 && password.trim().length > 0 && email.trim().length>0) {
       setButtonText("Creating your account....");
       setTimeout(async () => {
         let url = registerUrl;
-        let body = {
-          username,
-          password,
-          email,
+        if(phone.trim().length>0 && phone.length<=10 && typeof(Number(phone))=='number') 
+        {
+          let body = {
+            username,
+            password,
+            email,
+            phone
+          }
+          // console.log(body)
+          let method = "POST"
+          const response = await make_request(body, method, url);
+          // console.log(response)
+          if (response.status && response.data.status) {
+            navigate("/chat");
+          }
+          else {
+            setButtonText(response.data.message)
+          }
         }
-        let method = "POST"
-        const response = await make_request(body, method, url);
-        console.log(response)
-        if (response.status && response.data.status) {
-          navigate("/chat");
-        }
-        else {
-          setButtonText(response.data.message)
-        }
-      }, 2000);
+      }, 300);
     } else {
       alert("Either username or password is empty");
     }
@@ -62,6 +68,7 @@ const Register = () => {
               value={username}
               onChange={(e) => {
                 setusername(e.target.value);
+                setButtonText("Go on Register")
               }}
             />
             <input
@@ -71,6 +78,7 @@ const Register = () => {
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
+                setButtonText("Go on Register")
               }}
             />
             <input
@@ -80,6 +88,17 @@ const Register = () => {
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
+                setButtonText("Go on Register")
+              }}
+            />
+            <input
+              type="text"
+              placeholder="Phone...."
+              className="block w-full rounded-sm px-2 py-2 mb-3 rounded-lg"
+              value={phone}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setButtonText("Go on Register")
               }}
             />
             <button

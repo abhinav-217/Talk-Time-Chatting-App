@@ -1,6 +1,6 @@
 import React from "react";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"
+import { redirect, useNavigate } from "react-router-dom"
 import Heading from "../components/Heading";
 import { make_request } from "../utils/apiCalling";
 import Error from "../components/Error";
@@ -10,7 +10,7 @@ import Loader from "../components/Loader";
 const Login = () => {
 
   const navigate = useNavigate();
-  const [username, setusername] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [buttonText, setButtonText] = useState("Let's Go");
   const [authError, setError] = useState("")
@@ -18,22 +18,28 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (username.trim().length > 0 && password.trim().length > 0) {
+    if (phone.trim().length>0 && phone.length<=10 && typeof(Number(phone))==="number" && password.trim().length > 0) {
       setButtonText("Logging into your account....");
       setTimeout(async () => {
         let url = loginUrl;
         let body = {
-          searchValue: username,
+          searchValue: phone,
           password
         }
         let method = "POST";
         const response = await make_request(body, method, url);
-        console.log(response)
-        console.log(response)
         if (response.status && response.data.status) {
+          setButtonText(response.data.message);
           navigate("/chat");
         }
-      }, 2000);
+        else
+        {
+          if(response.status)
+          {
+            setButtonText(response.data.message);
+          }
+        }
+      }, 300);
     } else {
       alert("Either username or password is empty");
     }
@@ -54,11 +60,12 @@ const Login = () => {
           <form className="w-64 mx-auto" onSubmit={handleSubmit}>
             <input
               type="text"
-              placeholder="Username or Email"
+              placeholder="Phone"
               className="block w-full rounded-sm px-2 py-2 mb-3 rounded-lg"
-              value={username}
+              value={phone}
               onChange={(e) => {
-                setusername(e.target.value);
+                setPhone(e.target.value);
+                setButtonText("Let's Go")
               }}
             />
             <input
@@ -68,6 +75,7 @@ const Login = () => {
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
+                setButtonText("Let's Go")
               }}
             />
             <button
